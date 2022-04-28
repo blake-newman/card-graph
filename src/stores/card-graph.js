@@ -29,7 +29,9 @@ export const useCardGraphStore = defineStore({
   }),
   getters: {},
   actions: {
-    calculate() {
+    async calculate() {
+      const promises = [];
+
       this.cards = this.input.cards.map((cardInput, i) => {
         const input = Object.assign({}, cardInput, this.input.global);
 
@@ -48,23 +50,30 @@ export const useCardGraphStore = defineStore({
           },
         };
 
-        setTimeout(() => {
-          const cardOut = this.cards.find(
-            ({ input: { cardId } }) => cardId === input.cardId
-          );
-          cardOut.output.loading = false;
+        promises.push(
+          new Promise((resolve) => {
+            setTimeout(() => {
+              const cardOut = this.cards.find(
+                ({ input: { cardId } }) => cardId === input.cardId
+              );
+              cardOut.output.loading = false;
 
-          if (input.type === "breakdown") {
-            cardOut.output.data = card.data.map(
-              (d) => d * (input.double ? 2 : 1)
-            );
-          } else {
-            cardOut.output.data = card.data;
-          }
-        }, 500);
+              if (input.type === "breakdown") {
+                cardOut.output.data = card.data.map(
+                  (d) => d * (input.double ? 2 : 1)
+                );
+              } else {
+                cardOut.output.data = card.data;
+              }
+              resolve()
+            }, 500);
+          })
+        );
 
         return output;
       });
+
+      await Promise.all(promises);
     },
   },
 });
