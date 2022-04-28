@@ -1,39 +1,24 @@
 <script setup>
-import { computed, onMounted, watch } from "vue";
 import Card from "./components/Card.vue";
 import { useCardGraphStore } from "./stores/card-graph.js";
+import { useCardStore } from "./stores/card";
 
 const store = useCardGraphStore();
-onMounted(store.calculate);
-watch(store.input, store.calculate);
 
-const type = computed({
-  get: () => store.input.global.type,
-  set: (newValue) => (store.input.global.type = newValue),
-});
+const onExport = (e) => {
+  const result = Object.values(store.cardIdToCard).map(
+    (card) => [...useCardStore(card).result]
+  );
+
+  console.log(result);
+};
 </script>
 
 <template>
   <div class="app">
+    <button @click="onExport">Export</button>
     <div class="main">
-      <Card
-        v-for="card in store.cards"
-        :input="card.input"
-        :output="card.output"
-      />
-    </div>
-    <div class="sidebar">
-      <p>
-        type:
-        <label>
-          <input v-model="type" type="radio" value="breakdown" />
-          breakdown
-        </label>
-        <label>
-          <input v-model="type" type="radio" value="results" />
-          results
-        </label>
-      </p>
+      <Card v-for="card in store.cardIdToCard" :key="card.id" :id="card.id" />
     </div>
   </div>
 </template>

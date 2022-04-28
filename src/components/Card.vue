@@ -1,30 +1,40 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useCardGraphStore } from "../stores/card-graph.js";
+import { useCardStore } from "../stores/card.js";
+import { createPinia } from 'pinia'
 
 const props = defineProps({
-  input: Object,
-  output: Object,
+  id: String,
 });
 
-const store = useCardGraphStore();
+const card = useCardGraphStore().cardIdToCard[props.id]
+const resultCard = computed(() => useCardStore(card))
+const state = ref({ loading: false, type: card.type })
 
-const cardInput = store.input.cards.find(
-  ({ cardId }) => cardId === props.input.cardId
-);
+const onChange = (e) => {
+  state.value.type = e.target.value
+  state.value.loading = true;
+  setTimeout(() => {
+    card.type = state.value.type;
+    state.value.loading = false;
+  }, 500);
+}
 
-const shouldDouble = computed({
-  get: () => cardInput.double,
-  set: (newValue) => (cardInput.double = newValue),
-});
+
+// if want to cleanup when card not used
+watch(resultCard, (_, before) => before.$dispose())
+
+// cleanup after card destroyed
+// onUnmounted(resultCard, () => resultCard.$dispose())
 </script>
 
 <template>
   <div class="card">
-    <h2>{{ props.output.title }}</h2>
-    <div v-if="props.input.type === 'breakdown'">
+    <h2>{{ card.title }}</h2>
+    <div>
       <p>breakdown:</p>
-      <p v-if="props.output.loading" class="loading">loading breakdown…</p>
+      <p v-if="state.loading" class="loading">loading breakdown…</p>
       <table v-else class="breakdown">
         <thead>
           <tr>
@@ -34,7 +44,7 @@ const shouldDouble = computed({
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(d, i) in props.output.data">
+          <tr v-for="(d, i) in resultCard.result" :key="i">
             <th>#{{ i }}</th>
             <td>{{ d }}</td>
             <td>dunno</td>
@@ -43,19 +53,15 @@ const shouldDouble = computed({
       </table>
 
       <p class="double">
-        <label><input type="checkbox" v-model="shouldDouble" /> …double?</label>
+        <select
+          @input="onChange"
+          :value="state.type"
+        >
+          <option value="result">Result</option>
+          <option value="double">Double</option>
+          <option value="ref">Double + ref card</option>
+        </select>
       </p>
-    </div>
-    <div v-else>
-      <p>results:</p>
-      <p v-if="props.output.loading" class="loading">loading results…</p>
-      <ul v-else class="results">
-        <li v-for="(d, i) in props.output.data">
-          <span class="bar" :style="{ width: `${d * 35}px` }">
-            #{{ i }}: {{ d }}</span
-          >
-        </li>
-      </ul>
     </div>
   </div>
 </template>
@@ -70,7 +76,8 @@ const shouldDouble = computed({
   margin: 0;
 }
 
-.card > :last-child, .double {
+.card > :last-child,
+.double {
   margin-bottom: 0;
 }
 
