@@ -11,6 +11,10 @@ const type = computed({
   get: () => store.input.global.type,
   set: (newValue) => (store.input.global.type = newValue),
 });
+
+function sumData() {
+  store.input.global.forceLoad = true;
+}
 </script>
 
 <template>
@@ -34,6 +38,13 @@ const type = computed({
           results
         </label>
       </p>
+
+      <h3>sum of data:</h3>
+      <div v-if="store.totalData === -1">
+        <p>click button to generate</p>
+        <button type="button" @click="sumData">generate</button>
+      </div>
+      <p v-else>{{ store.totalData }}</p>
     </div>
   </div>
 </template>

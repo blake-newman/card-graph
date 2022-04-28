@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useCardGraphStore } from "../stores/card-graph.js";
+import { useIntersectionObserver } from "vue-composable";
 
 const props = defineProps({
   input: Object,
@@ -9,22 +10,32 @@ const props = defineProps({
 
 const store = useCardGraphStore();
 
-const cardInput = store.input.cards.find(
-  ({ cardId }) => cardId === props.input.cardId
+const cardInput = computed(() =>
+  store.input.cards.find(({ cardId }) => cardId === props.input.cardId)
 );
 
 const shouldDouble = computed({
-  get: () => cardInput.double,
-  set: (newValue) => (cardInput.double = newValue),
+  get: () => cardInput.value.double,
+  set: (newValue) => (cardInput.value.double = newValue),
+});
+
+const el = ref(null);
+const observer = useIntersectionObserver(el);
+watch(observer.isIntersecting, (isIntersecting) => {
+  if (observer.isIntersecting && !cardInput.value.onScreen) {
+    cardInput.value.onScreen = true;
+  }
 });
 </script>
 
 <template>
-  <div class="card">
+  <div ref="el" class="card">
     <h2>{{ props.output.title }}</h2>
     <div v-if="props.input.type === 'breakdown'">
       <p>breakdown:</p>
-      <p v-if="props.output.loading" class="loading">loading breakdown…</p>
+      <p v-if="props.output.loading || !cardInput.onScreen" class="loading">
+        loading breakdown…
+      </p>
       <table v-else class="breakdown">
         <thead>
           <tr>
@@ -48,7 +59,9 @@ const shouldDouble = computed({
     </div>
     <div v-else>
       <p>results:</p>
-      <p v-if="props.output.loading" class="loading">loading results…</p>
+      <p v-if="props.output.loading || !props.input.onScreen" class="loading">
+        loading results…
+      </p>
       <ul v-else class="results">
         <li v-for="(d, i) in props.output.data">
           <span class="bar" :style="{ width: `${d * 35}px` }">
@@ -62,6 +75,7 @@ const shouldDouble = computed({
 
 <style>
 .card {
+  min-height: 300px;
   border: 1px lightgrey solid;
   padding: 20px;
 }
@@ -70,7 +84,8 @@ const shouldDouble = computed({
   margin: 0;
 }
 
-.card > :last-child, .double {
+.card > :last-child,
+.double {
   margin-bottom: 0;
 }
 
